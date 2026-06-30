@@ -3,8 +3,10 @@ const config = require('../config');
 
 const pool = new Pool({
     connectionString: config.databaseUrl,
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
-
 async function initDb() {
     let retries = 5;
     while (retries) {
