@@ -9,8 +9,9 @@ import (
 func Setup(h *handler.Handler) *http.ServeMux {
 	mux := http.NewServeMux()
 
-	// Health endpoint (for ALB)
-	mux.HandleFunc("/health", h.HandleHealth)
+	// Health endpoints
+	mux.HandleFunc("/health", h.HandleHealth)              // Used by ALB health checks
+	mux.HandleFunc("/api/cafe/health", h.HandleHealth)     // Used for testing via ALB
 
 	// API endpoints
 	mux.HandleFunc("/api/cafe/menu", h.HandleMenu)
