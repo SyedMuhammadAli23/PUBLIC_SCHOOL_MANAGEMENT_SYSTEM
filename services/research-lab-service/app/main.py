@@ -4,8 +4,10 @@ from app.database import Base, engine, SessionLocal
 from app.routers.endpoints import router as api_router
 from app.seed import seed_mock_data
 
+# Create tables
 Base.metadata.create_all(bind=engine)
 
+# Seed mock data
 db = SessionLocal()
 try:
     seed_mock_data(db)
@@ -24,6 +26,12 @@ app.add_middleware(
 
 app.include_router(api_router)
 
+
+# Health endpoint used by ALB
 @app.get("/health")
+@app.get("/api/research/health")
 def health():
-    return {"status": "UP", "service": "Research & Lab Management Service"}
+    return {
+        "status": "UP",
+        "service": "Research & Lab Management Service",
+    }
