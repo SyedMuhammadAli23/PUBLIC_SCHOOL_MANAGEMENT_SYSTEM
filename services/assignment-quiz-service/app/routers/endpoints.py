@@ -5,7 +5,7 @@ from datetime import datetime
 from app import schemas, crud, models
 from app.database import get_db
 
-router = APIRouter()
+router = APIRouter(prefix="/api/assignments")
 
 @router.get("/assignments")
 def get_assignments(class_id: Optional[int] = None, db: Session = Depends(get_db)):
