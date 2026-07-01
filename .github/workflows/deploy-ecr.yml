@@ -1,4 +1,4 @@
-name: Deploy Microservices to AWS ECR
+name: Deploy Changed Microservices to AWS ECR
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
       - main
   workflow_dispatch:
 
-# Required permissions for OIDC authentication
 permissions:
   id-token: write
   contents: read
@@ -18,6 +17,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -29,42 +30,79 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, Tag, and Push Microservice Images
+      - name: Detect Changed Services
+        id: changes
+        run: |
+          echo "Detecting changed services..."
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual workflow detected."
+            echo "changed=ALL" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          CHANGED_SERVICES=$(echo "$CHANGED_FILES" | grep '^services/' | cut -d'/' -f2 | sort -u | tr '\n' ' ')
+
+          if [ -z "$CHANGED_SERVICES" ]; then
+            echo "No microservice changes detected."
+            echo "changed=NONE" >> $GITHUB_OUTPUT
+          else
+            echo "Changed services: $CHANGED_SERVICES"
+            echo "changed=$CHANGED_SERVICES" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and Push Changed Images
+        if: steps.changes.outputs.changed != 'NONE'
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          # Define array matching your exact ECR repositories and service folders
-          # Format: "service_folder_name:ecr_repo_name"
-          SERVICES=(
-            "gateway-service:psm-gateway-service"
-            "academic-service:psm-academic-service"
-            "library-service:psm-library-service"
-            "inventory-service:psm-inventory-service"
-            "scheduling-service:psm-scheduling-service"
-            "finance-service:psm-finance-service"
-            "cafe-service:psm-cafe-service"
-            "assignment-quiz-service:psm-assignment-quiz-service"
-            "research-lab-service:psm-research-lab-service"
-            "parking-alumni-service:psm-parking-alumni-service"
-            "report-service:psm-report-service"
-          )
 
-          for item in "${SERVICES[@]}"; do
-            # Split the string by the colon
-            FOLDER="${item%%:*}"
-            REPO="${item##*:}"
+          declare -A REPOS
+
+          REPOS["gateway-service"]="psm-gateway-service"
+          REPOS["academic-service"]="psm-academic-service"
+          REPOS["library-service"]="psm-library-service"
+          REPOS["inventory-service"]="psm-inventory-service"
+          REPOS["scheduling-service"]="psm-scheduling-service"
+          REPOS["finance-service"]="psm-finance-service"
+          REPOS["cafe-service"]="psm-cafe-service"
+          REPOS["assignment-quiz-service"]="psm-assignment-quiz-service"
+          REPOS["research-lab-service"]="psm-research-lab-service"
+          REPOS["parking-alumni-service"]="psm-parking-alumni-service"
+          REPOS["report-service"]="psm-report-service"
+
+          if [ "${{ steps.changes.outputs.changed }}" = "ALL" ]; then
+            SERVICES="${!REPOS[@]}"
+          else
+            SERVICES="${{ steps.changes.outputs.changed }}"
+          fi
+
+          for SERVICE in $SERVICES
+          do
+            REPO=${REPOS[$SERVICE]}
 
             echo "----------------------------------------"
-            echo "Processing Service: $FOLDER -> Repository: $REPO"
+            echo "Building: $SERVICE"
+            echo "Repository: $REPO"
             echo "----------------------------------------"
 
-            # Build the Docker image using the context of its specific directory
             docker build \
               -t $ECR_REGISTRY/$REPO:latest \
-              -t $ECR_REGISTRY/$REPO:${{ github.sha }} \
-              -f ./services/$FOLDER/Dockerfile ./services/$FOLDER
+              -f ./services/$SERVICE/Dockerfile \
+              ./services/$SERVICE
 
-            # Push both 'latest' and the unique commit SHA tag to AWS ECR
             docker push $ECR_REGISTRY/$REPO:latest
-            docker push $ECR_REGISTRY/$REPO:${{ github.sha }}
+
+            echo "$SERVICE deployed successfully."
           done
+
+      - name: No Services Changed
+        if: steps.changes.outputs.changed == 'NONE'
+        run: |
+          echo "No microservice changes detected."
+          echo "Skipping Docker build and push."
