@@ -24,6 +24,14 @@ app.add_middleware(
 
 app.include_router(api_router)
 
+
+# ALB Health Check
 @app.get("/health")
 def health():
+    return {"status": "UP", "service": "Parking & Alumni Service"}
+
+
+# Public Health Endpoint
+@app.get("/api/parking/health")
+def api_health():
     return {"status": "UP", "service": "Parking & Alumni Service"}
