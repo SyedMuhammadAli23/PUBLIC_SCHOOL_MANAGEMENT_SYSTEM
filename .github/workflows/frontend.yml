@@ -1,0 +1,90 @@
+name: Deploy Frontend to S3
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
+
+      - name: Detect Changed Frontends
+        id: changes
+        run: |
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "changed=ALL" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only HEAD~1 HEAD)
+
+          FRONTENDS=$(echo "$CHANGED" \
+            | grep '^frontends/' \
+            | cut -d'/' -f2 \
+            | sort -u \
+            | tr '\n' ' ')
+
+          if [ -z "$FRONTENDS" ]; then
+            echo "changed=NONE" >> $GITHUB_OUTPUT
+          else
+            echo "changed=$FRONTENDS" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and Upload Changed Frontends
+        if: steps.changes.outputs.changed != 'NONE'
+        run: |
+
+          declare -A BUCKETS
+
+          BUCKETS["admin-portal"]="asst-admin-portal-prod"
+          BUCKETS["user-portal"]="asst-user-portal-prod"
+          BUCKETS["devops-dashboard"]="asst-devops-dashboard-prod"
+
+          if [ "${{ steps.changes.outputs.changed }}" = "ALL" ]; then
+            APPS="${!BUCKETS[@]}"
+          else
+            APPS="${{ steps.changes.outputs.changed }}"
+          fi
+
+          for APP in $APPS
+          do
+
+            echo "===================================="
+            echo "Deploying $APP"
+            echo "===================================="
+
+            cd frontends/$APP
+
+            npm ci
+
+            npm run build
+
+            aws s3 sync dist/ s3://${BUCKETS[$APP]} --delete
+
+            cd ../..
+
+          done
+
+      - name: No Frontend Changes
+        if: steps.changes.outputs.changed == 'NONE'
+        run: |
+          echo "No frontend changes detected."
