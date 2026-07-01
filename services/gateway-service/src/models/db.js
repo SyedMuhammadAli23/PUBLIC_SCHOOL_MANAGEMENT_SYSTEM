@@ -2,7 +2,7 @@ const { Pool } = require('pg');
 const config = require('../config');
 
 const pool = new Pool({
-    connectionString: config.databaseUrl,
+    connectionString: config.databaseUrl.replace('?sslmode=require', ''),
     ssl: {
         rejectUnauthorized: false
     }
@@ -15,7 +15,10 @@ async function initDb() {
             console.log('Connected to auth_db database successfully.');
             break;
         } catch (err) {
-            console.error(`Database connection failed. Retries left: ${retries - 1}. Error:`, err.message);
+            console.error(`Database connection failed. Retries left: ${retries - 1}.`);
+            console.error("Full database error:");
+            console.error(err);
+        
             retries -= 1;
             await new Promise(res => setTimeout(res, 2000));
         }
