@@ -11,6 +11,7 @@ func Setup(h *handler.Handler) *http.ServeMux {
 
 	// Health endpoint
 	mux.HandleFunc("/health", h.HandleHealth)
+	mux.HandleFunc("/api/inventory/health", h.HandleHealth)
 
 	// API endpoints
 	mux.HandleFunc("/api/inventory/assets", h.HandleAssets)
