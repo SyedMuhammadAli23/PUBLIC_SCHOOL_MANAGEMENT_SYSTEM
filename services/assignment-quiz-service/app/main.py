@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.database import Base, engine, SessionLocal
 from app.routers.endpoints import router as api_router
 from app.seed import seed_mock_data
@@ -26,6 +27,20 @@ app.add_middleware(
 
 app.include_router(api_router)
 
+
+# ALB Health Check
 @app.get("/health")
 def health():
-    return {"status": "UP", "service": "Assignment & Quiz Service"}
+    return {
+        "status": "UP",
+        "service": "Assignment & Quiz Service"
+    }
+
+
+# Public API Health Check
+@app.get("/api/assignments/health")
+def api_health():
+    return {
+        "status": "UP",
+        "service": "Assignment & Quiz Service"
+    }
