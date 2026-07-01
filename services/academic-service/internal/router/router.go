@@ -7,11 +7,11 @@ import (
 
 func Setup(h *handler.Handler) *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/courses", h.HandleCourses)
-	mux.HandleFunc("/classes", h.HandleClasses)
-	mux.HandleFunc("/enrollments", h.HandleEnrollments)
-	mux.HandleFunc("/exams", h.HandleExams)
-	mux.HandleFunc("/marks", h.HandleMarks)
-	mux.HandleFunc("/health", h.HandleHealth)
+	mux.HandleFunc("/api/academics/courses", h.HandleCourses)
+	mux.HandleFunc("/api/academics/classes", h.HandleClasses)
+	mux.HandleFunc("/api/academics/enrollments", h.HandleEnrollments)
+	mux.HandleFunc("/api/academics/exams", h.HandleExams)
+	mux.HandleFunc("/api/academics/marks", h.HandleMarks)
+	mux.HandleFunc("/api/academics/health", h.HandleHealth)
 	return mux
 }

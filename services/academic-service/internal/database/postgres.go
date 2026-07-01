@@ -22,7 +22,8 @@ func Connect(dbURL string) (*sql.DB, error) {
 				return db, nil
 			}
 		}
-		log.Printf("Failed to connect to db. Retry %d/5. Error: %v", i+1, err)
+		log.Println("Database connection error:")
+		log.Printf("%+v\n", err)
 		time.Sleep(2 * time.Second)
 	}
 	return nil, err
