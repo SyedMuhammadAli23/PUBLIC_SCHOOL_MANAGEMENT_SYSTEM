@@ -11,6 +11,7 @@ func Setup(h *handler.Handler) *http.ServeMux {
 
 	// Health endpoint (used by ALB)
 	mux.HandleFunc("/health", h.HandleHealth)
+	mux.HandleFunc("/api/academics/health", h.HandleHealth)
 
 	// API endpoints
 	mux.HandleFunc("/api/academics/courses", h.HandleCourses)
