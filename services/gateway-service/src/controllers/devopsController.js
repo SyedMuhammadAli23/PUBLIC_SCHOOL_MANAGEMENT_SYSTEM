@@ -43,18 +43,75 @@ function pingService(url, timeoutMs = 1500) {
 
 // 1. Health Status check for all services
 exports.getHealth = asyncHandler(async (req, res) => {
+    const ALB = process.env.ALB_URL;
+
     const services = [
-        { name: 'Gateway Service', url: 'http://localhost:5005/health', tech: 'Node.js Express', port: 5005 },
-        { name: 'Academic Service', url: process.env.ACADEMIC_SERVICE_URL ? `${process.env.ACADEMIC_SERVICE_URL}/health` : 'http://academic-service:8081/health', tech: 'Go', port: 8081 },
-        { name: 'Scheduling Service', url: process.env.SCHEDULING_SERVICE_URL ? `${process.env.SCHEDULING_SERVICE_URL}/health` : 'http://scheduling-service:8082/health', tech: 'Go', port: 8082 },
-        { name: 'Library Service', url: process.env.LIBRARY_SERVICE_URL ? `${process.env.LIBRARY_SERVICE_URL}/health` : 'http://library-service:8083/health', tech: 'Go', port: 8083 },
-        { name: 'Finance Service', url: process.env.FINANCE_SERVICE_URL ? `${process.env.FINANCE_SERVICE_URL}/health` : 'http://finance-service:8084/health', tech: 'Go', port: 8084 },
-        { name: 'Inventory Service', url: process.env.INVENTORY_SERVICE_URL ? `${process.env.INVENTORY_SERVICE_URL}/health` : 'http://inventory-service:8085/health', tech: 'Go', port: 8085 },
-        { name: 'Cafe Service', url: process.env.CAFE_SERVICE_URL ? `${process.env.CAFE_SERVICE_URL}/health` : 'http://cafe-service:8086/health', tech: 'Go', port: 8086 },
-        { name: 'Assignment & Quiz Service', url: process.env.ASSIGNMENT_QUIZ_SERVICE_URL ? `${process.env.ASSIGNMENT_QUIZ_SERVICE_URL}/health` : 'http://assignment-quiz-service:8001/health', tech: 'Python FastAPI', port: 8001 },
-        { name: 'Research Lab Service', url: process.env.RESEARCH_LAB_SERVICE_URL ? `${process.env.RESEARCH_LAB_SERVICE_URL}/health` : 'http://research-lab-service:8002/health', tech: 'Python FastAPI', port: 8002 },
-        { name: 'Parking & Alumni Service', url: process.env.PARKING_ALUMNI_SERVICE_URL ? `${process.env.PARKING_ALUMNI_SERVICE_URL}/health` : 'http://parking-alumni-service:8003/health', tech: 'Python FastAPI', port: 8003 },
-        { name: 'Report Service', url: process.env.REPORT_SERVICE_URL ? `${process.env.REPORT_SERVICE_URL}/health` : 'http://report-service:8004/health', tech: 'Python FastAPI', port: 8004 }
+        {
+            name: 'Gateway Service',
+            url: 'http://localhost:5005/health',
+            tech: 'Node.js Express',
+            port: 5005
+        },
+        {
+            name: 'Academic Service',
+            url: `${ALB}/api/academics/health`,
+            tech: 'Go',
+            port: 8081
+        },
+        {
+            name: 'Scheduling Service',
+            url: `${ALB}/api/schedule/health`,
+            tech: 'Go',
+            port: 8082
+        },
+        {
+            name: 'Library Service',
+            url: `${ALB}/api/library/health`,
+            tech: 'Go',
+            port: 8083
+        },
+        {
+            name: 'Finance Service',
+            url: `${ALB}/api/finance/health`,
+            tech: 'Go',
+            port: 8084
+        },
+        {
+            name: 'Inventory Service',
+            url: `${ALB}/api/inventory/health`,
+            tech: 'Go',
+            port: 8085
+        },
+        {
+            name: 'Cafe Service',
+            url: `${ALB}/api/cafe/health`,
+            tech: 'Go',
+            port: 8086
+        },
+        {
+            name: 'Assignment & Quiz Service',
+            url: `${ALB}/api/assignments/health`,
+            tech: 'Python FastAPI',
+            port: 8001
+        },
+        {
+            name: 'Research Lab Service',
+            url: `${ALB}/api/research/health`,
+            tech: 'Python FastAPI',
+            port: 8002
+        },
+        {
+            name: 'Parking & Alumni Service',
+            url: `${ALB}/api/parking/health`,
+            tech: 'Python FastAPI',
+            port: 8003
+        },
+        {
+            name: 'Report Service',
+            url: `${ALB}/api/report/health`,
+            tech: 'Python FastAPI',
+            port: 8004
+        }
     ];
 
     // Check Postgres Health
