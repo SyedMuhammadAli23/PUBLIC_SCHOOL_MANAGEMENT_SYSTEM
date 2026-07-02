@@ -5,15 +5,9 @@ const path = require('path');
 
 let s3Client = null;
 
-if (config.awsAccessKeyId && config.awsSecretAccessKey) {
-    s3Client = new S3Client({
-        region: config.awsRegion,
-        credentials: {
-            accessKeyId: config.awsAccessKeyId,
-            secretAccessKey: config.awsSecretAccessKey
-        }
-    });
-}
+const s3Client = new S3Client({
+    region: process.env.AWS_REGION
+});
 
 /**
  * Uploads a base64 encoded image to AWS S3, or falls back to local storage if AWS is not configured.
