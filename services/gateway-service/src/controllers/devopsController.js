@@ -108,7 +108,7 @@ exports.getHealth = asyncHandler(async (req, res) => {
         },
         {
             name: 'Report Service',
-            url: `${ALB}/api/report/health`,
+            url: `${ALB}/api/reports/health`,
             tech: 'Python FastAPI',
             port: 8004
         }
