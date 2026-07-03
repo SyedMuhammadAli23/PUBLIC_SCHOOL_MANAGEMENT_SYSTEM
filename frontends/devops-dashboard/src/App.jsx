@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API_BASE = import.meta.env.VITE_API_GATEWAY_URL || 'https://d1edzu3nj8f784.cloudfront.net';
+const API_BASE = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:5005';
 
 function App() {
   const [activeTab, setActiveTab] = useState('health');
