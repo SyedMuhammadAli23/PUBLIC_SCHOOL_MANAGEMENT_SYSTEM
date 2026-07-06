@@ -19,6 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -32,6 +33,7 @@ jobs:
 
       - name: Detect Changed Frontends
         id: changes
+        shell: bash
         run: |
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -55,7 +57,10 @@ jobs:
 
       - name: Build and Upload Changed Frontends
         if: steps.changes.outputs.changed != 'NONE'
+        shell: bash
         run: |
+
+          set -e
 
           declare -A BUCKETS
 
@@ -71,32 +76,55 @@ jobs:
 
           for APP in $APPS
           do
-
-            echo "===================================="
+            echo ""
+            echo "=========================================="
             echo "Deploying $APP"
-            echo "===================================="
+            echo "=========================================="
 
             cd frontends/$APP
 
-            pwd
-
-            ls
-
             npm ci
-
             npm run build
 
-            echo "Dist folder"
-
+            echo ""
+            echo "Contents of dist/"
             ls -R dist
 
-            aws s3 sync dist/ s3://${BUCKETS[$APP]} --delete
+            BUCKET=${BUCKETS[$APP]}
 
-            aws s3 ls s3://${BUCKETS[$APP]} --recursive
+            if [ "$APP" = "admin-portal" ]; then
+
+              echo "Uploading Admin Portal..."
+              aws s3 sync dist/ s3://$BUCKET --delete
+              aws s3 sync dist/ s3://$BUCKET/admin --delete
+
+            elif [ "$APP" = "user-portal" ]; then
+
+              echo "Uploading User Portal..."
+              aws s3 sync dist/ s3://$BUCKET --delete
+              aws s3 sync dist/ s3://$BUCKET/user --delete
+
+            else
+
+              echo "Uploading DevOps Dashboard..."
+              aws s3 sync dist/ s3://$BUCKET --delete
+
+            fi
+
+            echo ""
+            echo "Bucket Contents:"
+            aws s3 ls s3://$BUCKET --recursive
 
             cd ../..
 
           done
+
+      - name: Invalidate CloudFront Cache
+        if: steps.changes.outputs.changed != 'NONE'
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id EXEZ7ZTTNYSID \
+            --paths "/*"
 
       - name: No Frontend Changes
         if: steps.changes.outputs.changed == 'NONE'
