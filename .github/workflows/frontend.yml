@@ -17,13 +17,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -31,38 +29,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ap-south-1
 
-      - name: Detect Changed Frontends
-        id: changes
-        shell: bash
-        run: |
-        
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "changed=ALL" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-        
-          if git rev-parse HEAD~1 >/dev/null 2>&1; then
-            CHANGED=$(git diff --name-only HEAD~1 HEAD)
-          else
-            echo "No previous commit found."
-            echo "changed=ALL" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-        
-          FRONTENDS=$(echo "$CHANGED" \
-            | grep '^frontends/' \
-            | cut -d'/' -f2 \
-            | sort -u \
-            | tr '\n' ' ')
-        
-          if [ -z "$FRONTENDS" ]; then
-            echo "changed=NONE" >> $GITHUB_OUTPUT
-          else
-            echo "changed=$FRONTENDS" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Build and Upload Changed Frontends
-        if: steps.changes.outputs.changed != 'NONE'
+      - name: Build and Deploy Frontends
         shell: bash
         run: |
 
@@ -74,14 +41,15 @@ jobs:
           BUCKETS["user-portal"]="asst-user-portal-prod"
           BUCKETS["devops-dashboard"]="asst-devops-dashboard-prod"
 
-          if [ "${{ steps.changes.outputs.changed }}" = "ALL" ]; then
-            APPS="${!BUCKETS[@]}"
-          else
-            APPS="${{ steps.changes.outputs.changed }}"
-          fi
+          APPS=(
+            "admin-portal"
+            "user-portal"
+            "devops-dashboard"
+          )
 
-          for APP in $APPS
+          for APP in "${APPS[@]}"
           do
+
             echo ""
             echo "=========================================="
             echo "Deploying $APP"
@@ -90,6 +58,7 @@ jobs:
             cd frontends/$APP
 
             npm ci
+
             npm run build
 
             echo ""
@@ -101,24 +70,29 @@ jobs:
             if [ "$APP" = "admin-portal" ]; then
 
               echo "Uploading Admin Portal..."
+
               aws s3 sync dist/ s3://$BUCKET --delete
+
               aws s3 sync dist/ s3://$BUCKET/admin --delete
 
             elif [ "$APP" = "user-portal" ]; then
 
               echo "Uploading User Portal..."
+
               aws s3 sync dist/ s3://$BUCKET --delete
+
               aws s3 sync dist/ s3://$BUCKET/user --delete
 
             else
 
               echo "Uploading DevOps Dashboard..."
+
               aws s3 sync dist/ s3://$BUCKET --delete
 
             fi
 
             echo ""
-            echo "Bucket Contents:"
+            echo "Bucket contents:"
             aws s3 ls s3://$BUCKET --recursive
 
             cd ../..
@@ -126,13 +100,15 @@ jobs:
           done
 
       - name: Invalidate CloudFront Cache
-        if: steps.changes.outputs.changed != 'NONE'
         run: |
+
           aws cloudfront create-invalidation \
             --distribution-id EXEZ7ZTTNYSID \
             --paths "/*"
 
-      - name: No Frontend Changes
-        if: steps.changes.outputs.changed == 'NONE'
+      - name: Deployment Complete
         run: |
-          echo "No frontend changes detected."
+          echo "======================================"
+          echo "Frontend deployment completed."
+          echo "CloudFront invalidation submitted."
+          echo "======================================"
