@@ -23,7 +23,15 @@ app.get('/health', (req, res) => {
     res.json({ status: 'UP', service: 'Gateway & Auth Service' });
 });
 
-app.use(express.json());
+app.use(express.json({
+    limit: '10mb'
+}));
+
+app.use(express.urlencoded({
+    extended: true,
+    limit: '10mb'
+}));
+
 app.use(require('./middleware/telemetryLogger'));
 
 // App routes
