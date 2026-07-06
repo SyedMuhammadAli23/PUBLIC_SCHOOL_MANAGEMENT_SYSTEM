@@ -35,20 +35,26 @@ jobs:
         id: changes
         shell: bash
         run: |
-
+        
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "changed=ALL" >> $GITHUB_OUTPUT
             exit 0
           fi
-
-          CHANGED=$(git diff --name-only HEAD~1 HEAD)
-
+        
+          if git rev-parse HEAD~1 >/dev/null 2>&1; then
+            CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          else
+            echo "No previous commit found."
+            echo "changed=ALL" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+        
           FRONTENDS=$(echo "$CHANGED" \
             | grep '^frontends/' \
             | cut -d'/' -f2 \
             | sort -u \
             | tr '\n' ' ')
-
+        
           if [ -z "$FRONTENDS" ]; then
             echo "changed=NONE" >> $GITHUB_OUTPUT
           else
